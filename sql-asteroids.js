@@ -1,0 +1,746 @@
+// ── SQL QUESTION BANK ─────────────────────────────────────────────────────────
+const QUESTIONS = [
+  // LEVEL 1 — Basic SELECT / WHERE / ORDER BY
+  { lvl:1, q:"What does the following query return?", code:"SELECT * FROM employees;",
+    opts:["All columns and all rows from the employees table","Only the first row from the employees table","The number of rows in the employees table","An error — you must specify column names"], a:0 },
+  { lvl:1, q:"Which SQL clause filters rows based on a condition?",
+    opts:["ORDER BY","GROUP BY","WHERE","HAVING"], a:2 },
+  { lvl:1, q:"What does the following query return?", code:"SELECT name FROM employees\nWHERE salary > 50000;",
+    opts:["Names of employees earning more than 50,000","All employees sorted by salary descending","Employees with salary exactly equal to 50,000","The average salary of all employees"], a:0 },
+  { lvl:1, q:"Which keyword removes duplicate rows from query results?",
+    opts:["UNIQUE","DISTINCT","DIFFERENT","NODUPE"], a:1 },
+  { lvl:1, q:"What does ORDER BY salary DESC do?",
+    opts:["Sorts results by salary from lowest to highest","Sorts results by salary from highest to lowest","Filters out rows with NULL salary","Groups rows by salary value"], a:1 },
+  { lvl:1, q:"What does the LIMIT clause do?", code:"SELECT name FROM employees LIMIT 5;",
+    opts:["Returns only rows where name has fewer than 5 characters","Returns the first 5 rows of the result set","Limits the query to 5 seconds of execution time","Returns 5 random rows"], a:1 },
+
+  // LEVEL 2 — JOINs / GROUP BY / Aggregates
+  { lvl:2, q:"What does INNER JOIN return?",
+    opts:["All rows from the left table, NULLs for unmatched right rows","All rows from both tables regardless of matches","Only rows where there is a match in both tables","Only rows with no match in the right table"], a:2 },
+  { lvl:2, q:"What does the following query compute?", code:"SELECT dept, COUNT(*)\nFROM employees\nGROUP BY dept;",
+    opts:["The total number of employees in the company","The number of employees in each department","The average salary per department","The number of distinct departments"], a:1 },
+  { lvl:2, q:"Which JOIN type returns all rows from both tables, filling NULLs where there is no match?",
+    opts:["INNER JOIN","LEFT JOIN","FULL OUTER JOIN","CROSS JOIN"], a:2 },
+  { lvl:2, q:"What is the difference between WHERE and HAVING?",
+    opts:["No difference — they are interchangeable","WHERE filters rows before grouping; HAVING filters groups after","HAVING filters rows before grouping; WHERE filters after","WHERE only works with aggregate functions"], a:1 },
+  { lvl:2, q:"What does this query return?", code:"SELECT dept, AVG(salary)\nFROM employees\nGROUP BY dept\nHAVING AVG(salary) > 70000;",
+    opts:["All departments and their average salaries","Employees in departments where someone earns over 70,000","Departments where the average salary exceeds 70,000","Employees earning above the overall average of 70,000"], a:2 },
+  { lvl:2, q:"What does LEFT JOIN return when the right table has no matching row?",
+    opts:["The row is excluded from results","An error is raised","The left row is returned with NULL for right-table columns","A row with zeros in numeric columns"], a:2 },
+
+  // LEVEL 3 — Subqueries / NULLs / Aliases / EXISTS
+  { lvl:3, q:"What does this subquery return?", code:"SELECT name FROM employees\nWHERE salary > (SELECT AVG(salary) FROM employees);",
+    opts:["Employees with salary exactly equal to the average","Employees earning above the company average salary","The average salary value as a scalar","All employees sorted by salary descending"], a:1 },
+  { lvl:3, q:"What does COALESCE(bonus, 0) return?",
+    opts:["Returns 0 if bonus is negative","Returns the bonus value, substituting 0 if it is NULL","Rounds bonus to 0 decimal places","Returns the minimum of bonus and 0"], a:1 },
+  { lvl:3, q:"Which operator tests whether a subquery returns at least one row?",
+    opts:["IN","EXISTS","ANY","CONTAINS"], a:1 },
+  { lvl:3, q:"What does this query return?", code:"SELECT e.name, d.name AS dept_name\nFROM employees e\nJOIN departments d ON e.dept_id = d.id\nWHERE d.name = 'Engineering';",
+    opts:["All employees and all departments","Employee names and their department name for Engineering staff","A count of engineers per department","Departments that have no employees"], a:1 },
+  { lvl:3, q:"How does IS NULL differ from = NULL in SQL?",
+    opts:["No difference — both check for NULL values","IS NULL correctly checks for NULL; = NULL always returns false","= NULL is the modern standard; IS NULL is deprecated","IS NULL only works on string columns"], a:1 },
+  { lvl:3, q:"What does this query do?", code:"SELECT name FROM customers\nWHERE id NOT IN (\n  SELECT customer_id FROM orders\n);",
+    opts:["Customers who have placed at least one order","Customers who have never placed an order","Customers with more than one order","Orders that have no associated customer"], a:1 },
+
+  // LEVEL 4 — Window Functions / CTEs / Advanced
+  { lvl:4, q:"What does ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) compute?",
+    opts:["A running total of salaries per department","The salary rank with gaps for ties within each department","A sequential row number within each department ordered by salary descending","The difference between each salary and the department average"], a:2 },
+  { lvl:4, q:"What is a CTE (Common Table Expression)?",
+    opts:["A permanent table stored on disk","A named temporary result set defined with WITH, usable once in the main query","A compressed index for performance","A transaction isolation mode"], a:1 },
+  { lvl:4, q:"What does this window function compute?", code:"SELECT name, salary,\n  SUM(salary) OVER (ORDER BY hire_date) AS running_total\nFROM employees;",
+    opts:["Total salary for the employee's department","Cumulative salary sum ordered by hire date","Salary as a percentage of the total payroll","Salary rank ordered by hire date"], a:1 },
+  { lvl:4, q:"What is the difference between RANK() and DENSE_RANK()?",
+    opts:["No difference — they always return identical values","RANK() skips integers after ties; DENSE_RANK() assigns consecutive integers","DENSE_RANK() skips integers after ties; RANK() does not","RANK() only works within PARTITION BY clauses"], a:1 },
+  { lvl:4, q:"What does this CTE-based query return?", code:"WITH high_earners AS (\n  SELECT * FROM employees WHERE salary > 100000\n)\nSELECT dept, COUNT(*)\nFROM high_earners\nGROUP BY dept;",
+    opts:["This is invalid SQL syntax","Count of high earners per department using a CTE","Creates a permanent view called high_earners","Selects the top 100,000 employees"], a:1 },
+  { lvl:4, q:"What does LAG(salary, 1) OVER (ORDER BY hire_date) return?",
+    opts:["The next employee's salary in hire order","The previous employee's salary in hire order","The salary from 1 month prior","The lag between two salary reviews"], a:1 },
+  { lvl:4, q:"Which statement about window functions is TRUE?",
+    opts:["Window functions collapse rows like GROUP BY","Window functions compute across a set of rows but keep each row in output","Window functions can only be used with ORDER BY","Window functions replace the need for JOINs"], a:1 },
+];
+
+// ── THEMES ────────────────────────────────────────────────────────────────────
+const THEMES = {
+  deepspace: {
+    label: 'DEEP SPACE',
+    swatch: ['#aa44ff','#00bbee','#dd44aa'],
+    bg: '#05000f',
+    ship: '#00ccff', shipGlow: '#00ccff',
+    bullet: '#ffff88', bulletGlow: '#ffff44',
+    burstAst: '#ffaa44', burstShip: '#00ccff', burstHit: '#ff6600',
+    tier2: ['#00eeff','#ffffaa','#ff9944','#ff88ff','#88ffcc'],
+    hud: '#00ccff', hud2: '#00cc88',
+    bar: '#0088cc',
+    ast: {
+      large:  { stroke:'#cc88ff', shadow:'#aa44ff', blur:6 },
+      medium: { stroke:'#44ddff', shadow:'#00bbee', blur:5 },
+      small:  { stroke:'#ff88cc', shadow:'#dd44aa', blur:4 },
+    },
+    nebulae: [
+      { rx:0.18, ry:0.22, radius:320, r:120, g:0,   b:210, maxA:0.10, speed:0.18, phase:0.0 },
+      { rx:0.78, ry:0.42, radius:270, r:0,   g:180, b:200, maxA:0.08, speed:0.23, phase:1.8 },
+      { rx:0.50, ry:0.80, radius:230, r:200, g:0,   b:130, maxA:0.07, speed:0.14, phase:3.5 },
+    ],
+  },
+  acidneon: {
+    label: 'ACID NEON',
+    swatch: ['#00ff44','#ccff00','#00ffcc'],
+    bg: '#000a00',
+    ship: '#00ff44', shipGlow: '#00ff44',
+    bullet: '#ccff00', bulletGlow: '#88ff00',
+    burstAst: '#88ff00', burstShip: '#00ff44', burstHit: '#ffff00',
+    tier2: ['#00ff44','#ccff00','#44ffaa','#aaff00','#00ffcc'],
+    hud: '#00ff44', hud2: '#ccff00',
+    bar: '#00aa33',
+    ast: {
+      large:  { stroke:'#44ff88', shadow:'#00dd44', blur:6 },
+      medium: { stroke:'#ccff00', shadow:'#88cc00', blur:5 },
+      small:  { stroke:'#00ffcc', shadow:'#00cc99', blur:4 },
+    },
+    nebulae: [
+      { rx:0.18, ry:0.22, radius:320, r:0,   g:200, b:60,  maxA:0.09, speed:0.18, phase:0.0 },
+      { rx:0.78, ry:0.42, radius:270, r:60,  g:220, b:0,   maxA:0.07, speed:0.23, phase:1.8 },
+      { rx:0.50, ry:0.80, radius:230, r:0,   g:180, b:160, maxA:0.07, speed:0.14, phase:3.5 },
+    ],
+  },
+  solarstorm: {
+    label: 'SOLAR STORM',
+    swatch: ['#ff8800','#ff4400','#ffcc00'],
+    bg: '#0f0400',
+    ship: '#ff8800', shipGlow: '#ff8800',
+    bullet: '#ffff44', bulletGlow: '#ffcc00',
+    burstAst: '#ff8800', burstShip: '#ff4400', burstHit: '#ffcc00',
+    tier2: ['#ff8800','#ffcc00','#ff4400','#ffaa44','#ff6600'],
+    hud: '#ff8800', hud2: '#ffcc00',
+    bar: '#cc5500',
+    ast: {
+      large:  { stroke:'#ff8833', shadow:'#cc5500', blur:6 },
+      medium: { stroke:'#ffcc00', shadow:'#cc9900', blur:5 },
+      small:  { stroke:'#ff4444', shadow:'#cc2200', blur:4 },
+    },
+    nebulae: [
+      { rx:0.18, ry:0.22, radius:320, r:220, g:80,  b:0,   maxA:0.10, speed:0.18, phase:0.0 },
+      { rx:0.78, ry:0.42, radius:270, r:200, g:30,  b:0,   maxA:0.08, speed:0.23, phase:1.8 },
+      { rx:0.50, ry:0.80, radius:230, r:200, g:160, b:0,   maxA:0.08, speed:0.14, phase:3.5 },
+    ],
+  },
+  synthwave: {
+    label: 'SYNTHWAVE',
+    swatch: ['#ff00cc','#aa00ff','#00aaff'],
+    bg: '#0a0010',
+    ship: '#ff00cc', shipGlow: '#ff00cc',
+    bullet: '#ffff00', bulletGlow: '#ffdd00',
+    burstAst: '#ff00cc', burstShip: '#aa00ff', burstHit: '#00aaff',
+    tier2: ['#ff00cc','#aa00ff','#00aaff','#ff66ff','#cc00ff'],
+    hud: '#ff00cc', hud2: '#aa00ff',
+    bar: '#880066',
+    ast: {
+      large:  { stroke:'#ff44dd', shadow:'#cc00aa', blur:6 },
+      medium: { stroke:'#aa44ff', shadow:'#7700dd', blur:5 },
+      small:  { stroke:'#44aaff', shadow:'#0077dd', blur:4 },
+    },
+    nebulae: [
+      { rx:0.18, ry:0.22, radius:320, r:200, g:0,   b:180, maxA:0.10, speed:0.18, phase:0.0 },
+      { rx:0.78, ry:0.42, radius:270, r:100, g:0,   b:220, maxA:0.09, speed:0.23, phase:1.8 },
+      { rx:0.50, ry:0.80, radius:230, r:0,   g:100, b:220, maxA:0.07, speed:0.14, phase:3.5 },
+    ],
+  },
+  ghost: {
+    label: 'GHOST',
+    swatch: ['#aaccff','#ccddff','#8899cc'],
+    bg: '#040610',
+    ship: '#aaccff', shipGlow: '#8899cc',
+    bullet: '#ffffff', bulletGlow: '#ccddff',
+    burstAst: '#aaccff', burstShip: '#ccddff', burstHit: '#ffffff',
+    tier2: ['#ffffff','#aaccff','#ccddff','#8899cc','#eeeeff'],
+    hud: '#aaccff', hud2: '#8899cc',
+    bar: '#445577',
+    ast: {
+      large:  { stroke:'#ccddff', shadow:'#8899cc', blur:5 },
+      medium: { stroke:'#aabbee', shadow:'#667799', blur:4 },
+      small:  { stroke:'#ffffff', shadow:'#aaccff', blur:3 },
+    },
+    nebulae: [
+      { rx:0.18, ry:0.22, radius:320, r:80,  g:100, b:200, maxA:0.07, speed:0.18, phase:0.0 },
+      { rx:0.78, ry:0.42, radius:270, r:100, g:120, b:220, maxA:0.06, speed:0.23, phase:1.8 },
+      { rx:0.50, ry:0.80, radius:230, r:60,  g:80,  b:180, maxA:0.05, speed:0.14, phase:3.5 },
+    ],
+  },
+};
+
+let activeThemeId = 'deepspace';
+let theme = THEMES.deepspace;
+
+function applyTheme(id) {
+  activeThemeId = id;
+  theme = THEMES[id];
+  document.documentElement.style.setProperty('--accent',  theme.hud);
+  document.documentElement.style.setProperty('--accent2', theme.hud2);
+  if (stars) {
+    let t2 = 0;
+    for (const s of stars) {
+      if (s.glow) { s.hexColor = theme.tier2[t2 % theme.tier2.length]; t2++; }
+    }
+  }
+  document.querySelectorAll('.theme-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === id);
+  });
+}
+
+function buildThemeRow() {
+  const row = document.getElementById('theme-row');
+  row.innerHTML = '';
+  for (const [id, t] of Object.entries(THEMES)) {
+    const btn = document.createElement('button');
+    btn.className = 'theme-btn' + (id === activeThemeId ? ' active' : '');
+    btn.dataset.id = id;
+    const swatchHtml = t.swatch.map(c =>
+      `<span style="background:${c};box-shadow:0 0 4px ${c}"></span>`
+    ).join('');
+    btn.innerHTML = `<span class="theme-swatch">${swatchHtml}</span>${t.label}`;
+    btn.onclick = () => applyTheme(id);
+    row.appendChild(btn);
+  }
+}
+
+// ── CANVAS ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() {
+  canvas.width  = Math.min(window.innerWidth  - 4, 960);
+  canvas.height = Math.min(window.innerHeight - 4, 720);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const SHIP_R       = 14;
+const THRUST_FORCE = 210;
+const ROT_SPEED    = 3.6;
+const FRICTION     = 0.984;
+const BULLET_SPD   = 420;
+const BULLET_LIFE  = 1.1;
+const FIRE_RATE    = 0.17;
+const INVINCIBLE_T = 3.0;
+const AST_SIZES    = { large:38, medium:21, small:11 };
+const SIZE_ORDER   = ['large','medium','small'];
+const SCORE_TABLE  = { large:20, medium:35, small:50 };
+// destroy goal = level * 10
+
+// ── GAME STATE ────────────────────────────────────────────────────────────────
+let state        = 'idle';
+let ship, bullets, asteroids, particles, stars;
+let lives, score, level, destroyedCount, time;
+let quizTrigger  = null;
+let keys         = {};
+let fireCooldown = 0;
+let rafId, lastTime;
+let usedQIds     = [];
+
+// ── SHIP ──────────────────────────────────────────────────────────────────────
+function makeShip() {
+  return { x:canvas.width/2, y:canvas.height/2, vx:0, vy:0,
+    angle:-Math.PI/2, thrusting:false, invincible:INVINCIBLE_T, blinkPhase:0 };
+}
+
+function drawShip(s) {
+  if (s.invincible > 0) {
+    s.blinkPhase += 0.12;
+    if (Math.floor(s.blinkPhase) % 2 === 1) return;
+  }
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.angle);
+  ctx.shadowColor = theme.shipGlow;
+  ctx.shadowBlur  = 8;
+  ctx.strokeStyle = theme.ship;
+  ctx.lineWidth   = 2;
+  ctx.beginPath();
+  ctx.moveTo(SHIP_R, 0);
+  ctx.lineTo(-SHIP_R * 0.8, -SHIP_R * 0.62);
+  ctx.lineTo(-SHIP_R * 0.38, 0);
+  ctx.lineTo(-SHIP_R * 0.8,  SHIP_R * 0.62);
+  ctx.closePath();
+  ctx.stroke();
+  if (s.thrusting) {
+    const flicker = 0.6 + Math.random() * 0.8;
+    ctx.shadowColor = '#ff8800';
+    ctx.strokeStyle = `rgba(255,${80 + Math.random() * 140 | 0},0,0.9)`;
+    const len = SHIP_R * flicker * 1.4;
+    ctx.beginPath();
+    ctx.moveTo(-SHIP_R * 0.38 - 2, -SHIP_R * 0.28);
+    ctx.lineTo(-SHIP_R * 0.38 - len, 0);
+    ctx.lineTo(-SHIP_R * 0.38 - 2,  SHIP_R * 0.28);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── ASTEROIDS ─────────────────────────────────────────────────────────────────
+function makeAsteroid(x, y, size) {
+  const r     = AST_SIZES[size];
+  const spd   = (18 + Math.random() * 36) * (1 + (level - 1) * 0.22);
+  const dir   = Math.random() * Math.PI * 2;
+  const verts = 7 + (Math.random() * 5 | 0);
+  const shape = [];
+  for (let i = 0; i < verts; i++) {
+    const a = (i / verts) * Math.PI * 2;
+    const d = r * (0.68 + Math.random() * 0.32);
+    shape.push([Math.cos(a) * d, Math.sin(a) * d]);
+  }
+  return { x, y, vx:Math.cos(dir)*spd, vy:Math.sin(dir)*spd,
+    rot:(Math.random()-0.5)*1.6, angle:0, size, radius:r, shape };
+}
+
+function spawnWave() {
+  const count = 3 + (level - 1);
+  asteroids = [];
+  for (let i = 0; i < count; i++) {
+    let x, y;
+    do {
+      x = Math.random() * canvas.width;
+      y = Math.random() * canvas.height;
+    } while (Math.hypot(x - canvas.width/2, y - canvas.height/2) < 160);
+    asteroids.push(makeAsteroid(x, y, 'large'));
+  }
+}
+
+function drawAsteroid(a) {
+  const st = theme.ast[a.size];
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  ctx.rotate(a.angle);
+  ctx.shadowColor = st.shadow;
+  ctx.shadowBlur  = st.blur;
+  ctx.strokeStyle = st.stroke;
+  ctx.lineWidth   = 2;
+  ctx.beginPath();
+  ctx.moveTo(a.shape[0][0], a.shape[0][1]);
+  for (let i = 1; i < a.shape.length; i++) ctx.lineTo(a.shape[i][0], a.shape[i][1]);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── BULLETS ───────────────────────────────────────────────────────────────────
+function fireBullet() {
+  bullets.push({
+    x: ship.x + Math.cos(ship.angle) * SHIP_R,
+    y: ship.y + Math.sin(ship.angle) * SHIP_R,
+    vx: ship.vx + Math.cos(ship.angle) * BULLET_SPD,
+    vy: ship.vy + Math.sin(ship.angle) * BULLET_SPD,
+    life: BULLET_LIFE
+  });
+}
+
+function drawBullet(b) {
+  ctx.save();
+  ctx.shadowColor = theme.bulletGlow;
+  ctx.shadowBlur  = 10;
+  ctx.fillStyle   = theme.bullet;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── PARTICLES ─────────────────────────────────────────────────────────────────
+function burst(x, y, n, color) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 40 + Math.random() * 160;
+    const life = 0.4 + Math.random() * 0.9;
+    particles.push({ x, y, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, life, maxLife:life, color });
+  }
+}
+
+function drawParticle(p) {
+  const alpha = p.life / p.maxLife;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = p.color;
+  ctx.shadowBlur  = 5;
+  ctx.fillStyle   = p.color;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── STARS ─────────────────────────────────────────────────────────────────────
+function initStars() {
+  stars = [];
+  for (let i = 0; i < 70; i++) {
+    stars.push({ x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+      r:0.4+Math.random()*0.4, baseAlpha:0.15+Math.random()*0.2,
+      mag:0.06+Math.random()*0.08, speed:0.4+Math.random()*0.4,
+      phase:Math.random()*Math.PI*2, glow:false, color:'200,215,255' });
+  }
+  for (let i = 0; i < 40; i++) {
+    stars.push({ x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+      r:0.8+Math.random()*0.6, baseAlpha:0.35+Math.random()*0.25,
+      mag:0.1+Math.random()*0.12, speed:0.8+Math.random()*0.8,
+      phase:Math.random()*Math.PI*2, glow:false, color:'210,225,255' });
+  }
+  for (let i = 0; i < 12; i++) {
+    stars.push({ x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+      r:1.5+Math.random()*1.3, baseAlpha:0.6+Math.random()*0.35,
+      mag:0.2+Math.random()*0.25, speed:1.5+Math.random()*1.5,
+      phase:Math.random()*Math.PI*2, glow:true,
+      hexColor: theme.tier2[i % theme.tier2.length] });
+  }
+}
+
+function drawStars() {
+  for (const s of stars) {
+    const alpha = Math.max(0, Math.min(1, s.baseAlpha + s.mag * Math.sin(time * s.speed + s.phase)));
+    ctx.save();
+    if (s.glow) {
+      ctx.shadowColor = s.hexColor;
+      ctx.shadowBlur  = 8;
+      ctx.fillStyle   = s.hexColor;
+      ctx.globalAlpha = alpha;
+    } else {
+      ctx.fillStyle = `rgba(${s.color},${alpha})`;
+    }
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ── NEBULAE ───────────────────────────────────────────────────────────────────
+function drawNebulae() {
+  for (const n of theme.nebulae) {
+    const cx = n.rx * canvas.width;
+    const cy = n.ry * canvas.height;
+    const alpha = n.maxA * (0.7 + 0.3 * Math.sin(time * n.speed + n.phase));
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, n.radius);
+    grad.addColorStop(0,   `rgba(${n.r},${n.g},${n.b},${alpha})`);
+    grad.addColorStop(0.5, `rgba(${n.r},${n.g},${n.b},${alpha * 0.4})`);
+    grad.addColorStop(1,   `rgba(${n.r},${n.g},${n.b},0)`);
+    ctx.save();
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, n.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ── SCANLINES ─────────────────────────────────────────────────────────────────
+function drawScanlines() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.06)';
+  for (let y = 0; y < canvas.height; y += 3) ctx.fillRect(0, y, canvas.width, 1);
+  ctx.restore();
+}
+
+// ── HUD ───────────────────────────────────────────────────────────────────────
+function drawHUD() {
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle  = theme.hud;
+  ctx.font = '15px "Courier New"';
+  ctx.textAlign = 'left';
+  ctx.fillText(`SCORE  ${score}`, 16, 28);
+  ctx.fillText(`LEVEL  ${level}`, 16, 50);
+
+  const goal = level * 10;
+  const barW = 160, barH = 10;
+  const bx = (canvas.width - barW) / 2;
+  const by = 16;
+  const fill = Math.min(destroyedCount / goal, 1);
+  ctx.strokeStyle = '#224';
+  ctx.lineWidth   = 1;
+  ctx.strokeRect(bx, by, barW, barH);
+  ctx.fillStyle = '#001122';
+  ctx.fillRect(bx, by, barW, barH);
+  ctx.fillStyle = fill >= 1 ? theme.hud2 : theme.bar;
+  ctx.fillRect(bx, by, barW * fill, barH);
+  ctx.fillStyle  = '#556';
+  ctx.font       = '11px "Courier New"';
+  ctx.textAlign  = 'center';
+  ctx.fillText(`${destroyedCount} / ${goal} targets`, canvas.width / 2, by + barH + 14);
+
+  for (let i = 0; i < lives; i++) {
+    const lx = canvas.width - 20 - i * 26;
+    const ly = 26;
+    ctx.save();
+    ctx.translate(lx, ly);
+    ctx.rotate(-Math.PI / 2);
+    ctx.strokeStyle = theme.ship;
+    ctx.shadowColor = theme.shipGlow;
+    ctx.shadowBlur  = 5;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(-8, -5.5);
+    ctx.lineTo(-3.5, 0);
+    ctx.lineTo(-8, 5.5);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ── GAME OVER ─────────────────────────────────────────────────────────────────
+function drawGameOver() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,10,0.75)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.textAlign   = 'center';
+  ctx.shadowColor = '#ff2244';
+  ctx.shadowBlur  = 30;
+  ctx.fillStyle   = '#ff2244';
+  ctx.font = 'bold 50px "Courier New"';
+  ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 50);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle  = '#ccd';
+  ctx.font = '20px "Courier New"';
+  ctx.fillText(`FINAL SCORE : ${score}`,   canvas.width / 2, canvas.height / 2 + 10);
+  ctx.fillText(`LEVEL REACHED : ${level}`, canvas.width / 2, canvas.height / 2 + 44);
+  ctx.fillStyle = theme.hud;
+  ctx.font = '14px "Courier New"';
+  ctx.fillText('PRESS SPACE TO PLAY AGAIN', canvas.width / 2, canvas.height / 2 + 96);
+  ctx.restore();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function wrap(o) {
+  if (o.x < 0) o.x += canvas.width;  else if (o.x > canvas.width)  o.x -= canvas.width;
+  if (o.y < 0) o.y += canvas.height; else if (o.y > canvas.height) o.y -= canvas.height;
+}
+function hits(ax, ay, ar, bx, by, br) {
+  return Math.hypot(ax - bx, ay - by) < ar + br;
+}
+
+// ── QUIZ ──────────────────────────────────────────────────────────────────────
+let currentQ = null, qAnswered = false, qCorrect = false;
+
+function pickQuestion() {
+  const diff = Math.min(level, 4);
+  let pool = QUESTIONS.map((q,i)=>({q,i})).filter(({q,i})=>q.lvl===diff && !usedQIds.includes(i));
+  if (pool.length === 0) {
+    usedQIds = usedQIds.filter(i => QUESTIONS[i].lvl !== diff);
+    pool = QUESTIONS.map((q,i)=>({q,i})).filter(({q,i})=>q.lvl===diff);
+  }
+  const pick = pool[Math.random() * pool.length | 0];
+  usedQIds.push(pick.i);
+  return pick.q;
+}
+
+function showQuiz(trigger) {
+  quizTrigger = trigger;
+  state       = 'quiz';
+  currentQ    = pickQuestion();
+  qAnswered   = false;
+  qCorrect    = false;
+
+  document.getElementById('quiz-title').textContent =
+    trigger === 'hit' ? '⚠  SHIP HIT — SQL CHALLENGE' : '★  ASTEROIDS CLEARED — SQL CHALLENGE';
+  document.getElementById('quiz-context').textContent =
+    trigger === 'hit'
+      ? 'Answer correctly to recover your lost life!'
+      : `You destroyed ${level * 10} asteroids! Answer correctly to advance to Level ${level + 1}.`;
+  document.getElementById('quiz-question').textContent = currentQ.q;
+
+  const codeEl = document.getElementById('quiz-code');
+  if (currentQ.code) { codeEl.style.display='block'; codeEl.textContent=currentQ.code; }
+  else codeEl.style.display = 'none';
+
+  const optsEl = document.getElementById('quiz-options');
+  optsEl.innerHTML = '';
+  currentQ.opts.forEach((text, i) => {
+    const btn = document.createElement('button');
+    btn.className   = 'quiz-option';
+    btn.textContent = `${String.fromCharCode(65+i)}.  ${text}`;
+    btn.onclick     = () => selectAnswer(i, btn);
+    optsEl.appendChild(btn);
+  });
+  document.getElementById('quiz-result').textContent = '';
+  document.getElementById('quiz-result').className   = 'quiz-result';
+  document.getElementById('quiz-continue').style.display = 'none';
+  document.getElementById('quiz-overlay').classList.add('active');
+}
+
+function selectAnswer(idx, btn) {
+  if (qAnswered) return;
+  qAnswered = true;
+  qCorrect  = idx === currentQ.a;
+  document.querySelectorAll('.quiz-option').forEach((b, i) => {
+    b.disabled = true;
+    if (i === currentQ.a) b.classList.add('correct');
+  });
+  if (!qCorrect) btn.classList.add('wrong');
+  const resultEl = document.getElementById('quiz-result');
+  if (qCorrect) {
+    resultEl.className   = 'quiz-result success';
+    resultEl.textContent = quizTrigger === 'hit'
+      ? '✓ Correct! Life restored — back to the fight!'
+      : `✓ Correct! Advancing to Level ${level + 1}!`;
+  } else {
+    resultEl.className   = 'quiz-result failure';
+    resultEl.textContent = quizTrigger === 'hit'
+      ? '✗ Wrong! Life lost. Keep flying!'
+      : `✗ Wrong! Stay on this level — ${level * 10} more to go.`;
+  }
+  document.getElementById('quiz-continue').style.display = 'inline-block';
+}
+
+function continueAfterQuiz() {
+  document.getElementById('quiz-overlay').classList.remove('active');
+  if (quizTrigger === 'hit') {
+    if (!qCorrect) {
+      lives--;
+      if (lives <= 0) { state = 'gameover'; return; }
+    }
+    ship  = makeShip();
+    state = 'playing';
+  } else {
+    if (qCorrect) {
+      level++; destroyedCount = 0; bullets = []; spawnWave();
+    } else {
+      destroyedCount = 0;
+      if (asteroids.length === 0) spawnWave();
+    }
+    state = 'playing';
+  }
+}
+
+// ── UPDATE ────────────────────────────────────────────────────────────────────
+function update(dt) {
+  if (state !== 'playing') return;
+
+  if (keys['ArrowLeft']  || keys['a']) ship.angle -= ROT_SPEED * dt;
+  if (keys['ArrowRight'] || keys['d']) ship.angle += ROT_SPEED * dt;
+  ship.thrusting = !!(keys['ArrowUp'] || keys['w']);
+  if (ship.thrusting) {
+    ship.vx += Math.cos(ship.angle) * THRUST_FORCE * dt;
+    ship.vy += Math.sin(ship.angle) * THRUST_FORCE * dt;
+  }
+  ship.vx *= FRICTION; ship.vy *= FRICTION;
+  ship.x  += ship.vx * dt; ship.y += ship.vy * dt;
+  wrap(ship);
+  if (ship.invincible > 0) ship.invincible -= dt;
+
+  fireCooldown -= dt;
+  if (keys[' '] && fireCooldown <= 0) { fireBullet(); fireCooldown = FIRE_RATE; }
+
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+    if (b.life <= 0) bullets.splice(i, 1); else wrap(b);
+  }
+  for (const a of asteroids) {
+    a.x += a.vx * dt; a.y += a.vy * dt; a.angle += a.rot * dt; wrap(a);
+  }
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.96; p.vy *= 0.96; p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  let quizNeeded = false;
+  outer:
+  for (let bi = bullets.length - 1; bi >= 0; bi--) {
+    const b = bullets[bi];
+    for (let ai = asteroids.length - 1; ai >= 0; ai--) {
+      const a = asteroids[ai];
+      if (!hits(b.x, b.y, 3, a.x, a.y, a.radius)) continue;
+      bullets.splice(bi, 1);
+      burst(a.x, a.y, 14, theme.burstAst);
+      const si = SIZE_ORDER.indexOf(a.size);
+      score += SCORE_TABLE[a.size];
+      destroyedCount++;
+      if (si < SIZE_ORDER.length - 1) {
+        const next = SIZE_ORDER[si + 1];
+        asteroids.push(makeAsteroid(a.x, a.y, next));
+        asteroids.push(makeAsteroid(a.x, a.y, next));
+      }
+      asteroids.splice(ai, 1);
+      if (destroyedCount >= level * 10) { quizNeeded = true; break outer; }
+      break;
+    }
+  }
+  if (quizNeeded) { showQuiz('destroy'); return; }
+
+  if (ship.invincible <= 0) {
+    for (const a of asteroids) {
+      if (hits(ship.x, ship.y, SHIP_R * 0.72, a.x, a.y, a.radius)) {
+        burst(ship.x, ship.y, 22, theme.burstShip);
+        burst(ship.x, ship.y, 14, theme.burstHit);
+        ship.invincible = 999;
+        showQuiz('hit');
+        return;
+      }
+    }
+  }
+  if (asteroids.length === 0) spawnWave();
+}
+
+// ── DRAW ──────────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.fillStyle = theme.bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawNebulae();
+  drawStars();
+
+  if (state === 'playing' || state === 'quiz') {
+    for (const a of asteroids) drawAsteroid(a);
+    for (const b of bullets)   drawBullet(b);
+    for (const p of particles) drawParticle(p);
+    if (ship) drawShip(ship);
+    drawHUD();
+  }
+  if (state === 'gameover') {
+    for (const a of asteroids) drawAsteroid(a);
+    for (const p of particles) drawParticle(p);
+    drawHUD();
+    drawGameOver();
+  }
+  drawScanlines();
+}
+
+// ── LOOP ──────────────────────────────────────────────────────────────────────
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  time += dt;
+  update(dt);
+  draw();
+  rafId = requestAnimationFrame(loop);
+}
+
+// ── INPUT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (state === 'gameover' && e.key === ' ') startGame();
+  if ([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// ── START ─────────────────────────────────────────────────────────────────────
+function startGame() {
+  document.getElementById('start-screen').style.display = 'none';
+  lives = 3; score = 0; level = 1; destroyedCount = 0; time = 0;
+  usedQIds = []; bullets = []; particles = [];
+  ship = makeShip();
+  initStars();
+  spawnWave();
+  state    = 'playing';
+  lastTime = performance.now();
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+buildThemeRow();
+asteroids = []; bullets = []; particles = [];
+time = 0;
+initStars();
+lastTime = performance.now();
+rafId = requestAnimationFrame(loop);
